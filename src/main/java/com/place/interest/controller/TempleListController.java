@@ -7,8 +7,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
+import java.util.List;
+
 @RestController
 public class TempleListController {
+
+    private static final String LIST_URI = "<website>/templeList?lat=<latitude>&lon=<longitude>";
+    private static final String INFO_URI = "<website>/templeList?placeId=<placeId>";
+    private static final String PHOTO_URI = "<website>/templeList?photoReference=<photoReference>";
 
     @Autowired
     private PlaceOfInterestService service;
@@ -27,5 +34,14 @@ public class TempleListController {
     @RequestMapping(value = "/templePhoto", produces = "image/jpg")
     public byte[]  templePhoto(@RequestParam String photoReference){
         return service.fetchPhoto(photoReference);
+    }
+
+    @RequestMapping
+    public List<String> templeApi(){
+        return Arrays.asList(
+                "TempleList Api : " + LIST_URI
+                ,"TempleInfo Api : " + INFO_URI
+                ,"TemplePhoto Api : " + PHOTO_URI
+        );
     }
 }
