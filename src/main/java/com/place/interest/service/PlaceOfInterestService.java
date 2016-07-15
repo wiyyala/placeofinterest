@@ -36,9 +36,6 @@ public class PlaceOfInterestService {
     @Value("${application.type}")
     private String type;
 
-    @Value("${application.key}")
-    private String key;
-
     @Autowired
     @Qualifier("googlePlacesAdapter")
     private PlacesAdapter googlePlacesAdapter;
@@ -166,7 +163,7 @@ public class PlaceOfInterestService {
 
     private String appendKey(StringBuilder builder) {
         builder.append("&key=");
-        builder.append(key);
+        builder.append(System.getenv("API_KEY"));
         return builder.toString();
     }
 
