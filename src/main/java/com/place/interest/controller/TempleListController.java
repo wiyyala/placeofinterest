@@ -14,8 +14,8 @@ import java.util.List;
 public class TempleListController {
 
     private static final String LIST_URI = "<website>/templeList?lat=<latitude>&lon=<longitude>";
-    private static final String INFO_URI = "<website>/templeList?placeId=<placeId>";
-    private static final String PHOTO_URI = "<website>/templeList?photoReference=<photoReference>";
+    private static final String INFO_URI = "<website>/templeInfo?placeId=<placeId>";
+    private static final String PHOTO_URI = "<website>/templePhoto?photoReference=<photoReference>";
 
     @Autowired
     private PlaceOfInterestService service;

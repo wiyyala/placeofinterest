@@ -77,14 +77,16 @@ public class PlaceOfInterestService {
         List<Photo> photos = temple.getPhotos();
         List<com.place.interest.domain.googlePlacesApi.Photo> resultPhotos = result.getPhotos();
         if (thisExists(resultPhotos)) {
-            for (com.place.interest.domain.googlePlacesApi.Photo photo : resultPhotos){
-                Photo returnPhoto = new Photo();
-                returnPhoto.setHeight(photo.getHeight());
-                returnPhoto.setWidth(photo.getWidth());
-                returnPhoto.setReference(photo.getPhoto_reference());
-                returnPhoto.setHtmlAttributions(photo.getHtml_attributions());
-                photos.add(returnPhoto);
-            }
+            resultPhotos
+                    .stream()
+                    .forEach(photo -> {
+                        Photo returnPhoto = new Photo();
+                        returnPhoto.setHeight(photo.getHeight());
+                        returnPhoto.setWidth(photo.getWidth());
+                        returnPhoto.setReference(photo.getPhoto_reference());
+                        returnPhoto.setHtmlAttributions(photo.getHtml_attributions());
+                        photos.add(returnPhoto);
+                    });
         }
         temple.setPhotos(photos);
         temple.setPlaceId(result.getPlace_id());
@@ -102,21 +104,19 @@ public class PlaceOfInterestService {
         TempleData templeData = new TempleData();
         List<Temple> temples = templeData.getTemples();
         if (thisExists(resultList)) {
-            for (Result result : resultList) {
-                String name = result.getName();
-                List<String> types = result.getTypes();
-                if (isTypeAllowed(types, name.toLowerCase())) {
-                    BigDecimal latitude = result.getGeometry().getLocation().getLat();
-                    BigDecimal longitude = result.getGeometry().getLocation().getLng();
-                    Temple temple = new Temple();
-                    temple.setName(name);
-                    temple.setLatitude(latitude);
-                    temple.setLongitude(longitude);
-                    temple.setPlaceId(result.getPlace_id());
-                    logger.info(String.format(MESSAGE, name, latitude, longitude));
-                    temples.add(temple);
-                }
-            }
+            resultList.stream()
+                    .filter((t) -> isTypeAllowed(t.getTypes(), t.getName()))
+                    .forEach(r -> {
+                        Temple temple = new Temple();
+                        BigDecimal latitude = r.getGeometry().getLocation().getLat();
+                        BigDecimal longitude = r.getGeometry().getLocation().getLng();
+                        temple.setName(r.getName());
+                        temple.setLatitude(latitude);
+                        temple.setLongitude(longitude);
+                        temple.setPlaceId(r.getPlace_id());
+                        logger.info(String.format(MESSAGE, r.getName(), latitude, longitude));
+                        temples.add(temple);
+                    });
         }
         return templeData;
     }
