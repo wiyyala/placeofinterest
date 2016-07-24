@@ -19,9 +19,10 @@ import java.util.List;
 @Component
 public class PlaceOfInterestService {
 
-    public static final String COMMA = ",";
+    private static final String COMMA = ",";
     private static final Logger logger = LoggerFactory.getLogger(PlaceOfInterestService.class);
     private static final List<String> TEMPLE_STRINGS = Arrays.asList("temple", "mandir");
+    private static final int MIN_SEARCH_LENGTH = 4;
 
 
     @Value("${application.nearby.search.url}")
@@ -78,8 +79,10 @@ public class PlaceOfInterestService {
     public TempleData fetchPredictions(String hint, String country) {
         TempleData templeData = new TempleData();
         String cleanedHint = cleanHint(hint);
+        if(cleanedHint.length() < MIN_SEARCH_LENGTH){
+            return templeData;
+        }
         TEMPLE_STRINGS
-                .stream()
                 .forEach(s -> {
                     String url = buildPredictionsUrl(cleanedHint + "+" + s, country);
                     logger.info(String.format("Url used to fetch temple predictions : %s", url));
@@ -95,7 +98,7 @@ public class PlaceOfInterestService {
 
         TEMPLE_STRINGS
                 .stream()
-                .filter(s -> hint.contains(s))
+                .filter(hint::contains)
                 .forEach(s -> {
                     String replace = result.get(0).replace(s, "");
                     result.set(0, replace);
