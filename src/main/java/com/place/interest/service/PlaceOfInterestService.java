@@ -1,28 +1,28 @@
 package com.place.interest.service;
 
 import com.place.interest.adapters.PlacesAdapter;
-import com.place.interest.domain.Photo;
-import com.place.interest.domain.Temple;
 import com.place.interest.domain.TempleData;
+import com.place.interest.domain.googlePlacesApi.GoogleNameSearchResult;
 import com.place.interest.domain.googlePlacesApi.GoogleNearBySearchResults;
 import com.place.interest.domain.googlePlacesApi.GooglePlaceDetailsResult;
-import com.place.interest.domain.googlePlacesApi.Result;
+import com.place.interest.service.converters.GoogleResultConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 
-@Configuration
+@Component
 public class PlaceOfInterestService {
 
     public static final String COMMA = ",";
     private static final Logger logger = LoggerFactory.getLogger(PlaceOfInterestService.class);
-    private static final String MESSAGE = "Name of the temple : %s " + System.lineSeparator() + " Latitude : %s " + System.lineSeparator() + " Longitude : %s";
+    private static final List<String> TEMPLE_STRINGS = Arrays.asList("temple", "mandir");
+
 
     @Value("${application.nearby.search.url}")
     private String baseSearchUrl;
@@ -33,12 +33,22 @@ public class PlaceOfInterestService {
     @Value("${application.place.photo.url}")
     private String basePlacePhotoUrl;
 
+    @Value("${application.place.prediction.url}")
+    private String basePlacePredictionUrl;
+
+    @Value("${application.place.prediction.component.url}")
+    private String basePlacePredictionComponentUrl;
+
     @Value("${application.type}")
     private String type;
 
     @Autowired
     @Qualifier("googlePlacesAdapter")
     private PlacesAdapter googlePlacesAdapter;
+
+    @Autowired
+    @Qualifier("googleResultConverter")
+    private GoogleResultConverter googleResultConverter;
 
 
     public TempleData fetchTemples(String lat, String lon, String radius){
@@ -48,14 +58,14 @@ public class PlaceOfInterestService {
 
         GoogleNearBySearchResults results = googlePlacesAdapter.fetchNearbySearchData(url);
 
-        return getTempleData(results);
+        return googleResultConverter.getTempleData(results);
     }
 
     public TempleData fetchPlaceDetails(String placeId){
         String url = buildPlaceDetailsUrl(placeId);
         logger.info(String.format("Url used to fetch temple place details : %s", url));
         GooglePlaceDetailsResult googlePlaceDetailsResult = googlePlacesAdapter.fetchPlaceDetailsData(url);
-        return getTempleData(googlePlaceDetailsResult);
+        return googleResultConverter.getTempleData(googlePlaceDetailsResult);
     }
 
 
@@ -65,77 +75,20 @@ public class PlaceOfInterestService {
         return googlePlacesAdapter.fetchPlacePhoto(url);
     }
 
-
-    private TempleData getTempleData(GooglePlaceDetailsResult googlePlaceDetailsResult) {
-        Result result = googlePlaceDetailsResult.getResult();
+    public TempleData fetchPredictions(String hint, String country) {
         TempleData templeData = new TempleData();
-        Temple temple = new Temple();
-        temple.setAddress(result.getFormatted_address());
-        temple.setPhoneNumber(result.getFormatted_phone_number());
-        temple.setInternationlPhoneNumber(result.getInternational_phone_number());
-        temple.setName(result.getName());
-        List<Photo> photos = temple.getPhotos();
-        List<com.place.interest.domain.googlePlacesApi.Photo> resultPhotos = result.getPhotos();
-        if (thisExists(resultPhotos)) {
-            resultPhotos
-                    .stream()
-                    .forEach(photo -> {
-                        Photo returnPhoto = new Photo();
-                        returnPhoto.setHeight(photo.getHeight());
-                        returnPhoto.setWidth(photo.getWidth());
-                        returnPhoto.setReference(photo.getPhoto_reference());
-                        returnPhoto.setHtmlAttributions(photo.getHtml_attributions());
-                        photos.add(returnPhoto);
-                    });
-        }
-        temple.setPhotos(photos);
-        temple.setPlaceId(result.getPlace_id());
-        temple.setMapsUrl(result.getUrl());
-        temple.setWebsite(result.getWebsite());
-        List<Temple> temples = templeData.getTemples();
-        temples.add(temple);
+        TEMPLE_STRINGS
+                .stream()
+                .forEach(s -> {
+                    String url = buildPredictionsUrl(hint + "+" + s, country);
+                    logger.info(String.format("Url used to fetch temple predictions : %s", url));
+                    GoogleNameSearchResult result = googlePlacesAdapter.fetchPredictions(url);
+                    googleResultConverter.getTempleData(result, templeData);
+                });
+
         return templeData;
     }
 
-
-    private TempleData getTempleData(GoogleNearBySearchResults results) {
-
-        List<Result> resultList = results.getResults();
-        TempleData templeData = new TempleData();
-        List<Temple> temples = templeData.getTemples();
-        if (thisExists(resultList)) {
-            resultList.stream()
-                    .filter((t) -> isTypeAllowed(t.getTypes(), t.getName()))
-                    .forEach(r -> {
-                        Temple temple = new Temple();
-                        BigDecimal latitude = r.getGeometry().getLocation().getLat();
-                        BigDecimal longitude = r.getGeometry().getLocation().getLng();
-                        temple.setName(r.getName());
-                        temple.setLatitude(latitude);
-                        temple.setLongitude(longitude);
-                        temple.setPlaceId(r.getPlace_id());
-                        logger.info(String.format(MESSAGE, r.getName(), latitude, longitude));
-                        temples.add(temple);
-                    });
-        }
-        return templeData;
-    }
-
-    private boolean isTypeAllowed(List<String> types, String name) {
-        if(types.contains("hindu_temple")){
-            return true;
-        }
-
-        if(name.contains("temple")){
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean thisExists(List givenList) {
-        return givenList != null;
-    }
 
     private String buildSearchUrl(String lat, String lon, String radius) {
         StringBuilder builder = new StringBuilder(baseSearchUrl);
@@ -158,6 +111,13 @@ public class PlaceOfInterestService {
     private String buildPlacePhotoUrl(String photoReference) {
         StringBuilder builder = new StringBuilder(basePlacePhotoUrl);
         builder.append(photoReference);
+        return appendKey(builder);
+    }
+
+    private String buildPredictionsUrl(String hint, String country) {
+        StringBuilder builder = new StringBuilder(basePlacePredictionUrl);
+        builder.append(hint);
+        builder.append(country);
         return appendKey(builder);
     }
 

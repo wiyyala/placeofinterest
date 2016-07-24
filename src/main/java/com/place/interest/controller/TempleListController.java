@@ -44,4 +44,5 @@ public class TempleListController {
                 ,"TemplePhoto Api : " + PHOTO_URI
         );
     }
+
 }

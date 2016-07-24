@@ -1,6 +1,7 @@
 package com.place.interest.adapters.impl;
 
 import com.place.interest.adapters.PlacesAdapter;
+import com.place.interest.domain.googlePlacesApi.GoogleNameSearchResult;
 import com.place.interest.domain.googlePlacesApi.GoogleNearBySearchResults;
 import com.place.interest.domain.googlePlacesApi.GooglePlaceDetailsResult;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,11 @@ public class GooglePlacesAdapter implements PlacesAdapter {
     @Override
     public byte[] fetchPlacePhoto(String url) {
         return getRestTemplate().getForObject(url, byte[].class);
+    }
+
+    @Override
+    public GoogleNameSearchResult fetchPredictions(String url) {
+        return getRestTemplate().getForObject(url, GoogleNameSearchResult.class);
     }
 
     private RestTemplate getRestTemplate() {
