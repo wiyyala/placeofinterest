@@ -79,7 +79,12 @@ public class GoogleResultConverter {
         if(thisExists(predictions)){
             predictions
                     .stream()
-                    .filter(prediction -> hasExpectedName(prediction.getDescription()))
+                    .filter(prediction -> {
+                        String description = prediction.getDescription();
+                        int indexOfFirstComma = description.indexOf(",");
+                        String name = description.substring(0, indexOfFirstComma);
+                        return hasExpectedName(name);
+                    })
                     .forEach(prediction -> {
                         Temple temple = new Temple();
                         temple.setName(prediction.getDescription());
@@ -102,6 +107,7 @@ public class GoogleResultConverter {
     }
 
     private boolean hasExpectedName(String name) {
+        logger.info(String.format("Actual name passed : %s", name));
         return NAMES
                 .stream()
                 .filter(name.toLowerCase()::contains)
@@ -110,6 +116,6 @@ public class GoogleResultConverter {
     }
 
     private boolean thisExists(List givenList) {
-        return givenList != null;
+        return givenList != null || !givenList.isEmpty();
     }
 }

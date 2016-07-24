@@ -77,16 +77,31 @@ public class PlaceOfInterestService {
 
     public TempleData fetchPredictions(String hint, String country) {
         TempleData templeData = new TempleData();
+        String cleanedHint = cleanHint(hint);
         TEMPLE_STRINGS
                 .stream()
                 .forEach(s -> {
-                    String url = buildPredictionsUrl(hint + "+" + s, country);
+                    String url = buildPredictionsUrl(cleanedHint + "+" + s, country);
                     logger.info(String.format("Url used to fetch temple predictions : %s", url));
                     GoogleNameSearchResult result = googlePlacesAdapter.fetchPredictions(url);
                     googleResultConverter.getTempleData(result, templeData);
                 });
 
         return templeData;
+    }
+
+    private String cleanHint(String hint) {
+        List<String> result = Arrays.asList(hint);
+
+        TEMPLE_STRINGS
+                .stream()
+                .filter(s -> hint.contains(s))
+                .forEach(s -> {
+                    String replace = result.get(0).replace(s, "");
+                    result.set(0, replace);
+                });
+
+        return result.get(0);
     }
 
 
@@ -117,6 +132,7 @@ public class PlaceOfInterestService {
     private String buildPredictionsUrl(String hint, String country) {
         StringBuilder builder = new StringBuilder(basePlacePredictionUrl);
         builder.append(hint);
+        builder.append(basePlacePredictionComponentUrl);
         builder.append(country);
         return appendKey(builder);
     }
