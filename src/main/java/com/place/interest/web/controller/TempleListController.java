@@ -1,4 +1,4 @@
-package com.place.interest.controller;
+package com.place.interest.web.controller;
 
 import com.place.interest.domain.TempleData;
 import com.place.interest.service.PlaceOfInterestService;
